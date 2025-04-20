@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Flappy Bird SVG</title>
+  <style>
+    body {
+      margin: 0;
+      background: #70C5CE;
+    }
+
+    svg {
+      display: block;
+      margin: auto;
+      background: #70C5CE;
+    }
+  </style>
+</head>
+
+<body>
+
+  <svg id="game" width="320" height="480" viewBox="0 0 320 480">
+    <defs>
+      <!-- Gradiente para os canos -->
+      <linearGradient id="pipeGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6CC05F" />
+        <stop offset="100%" stop-color="#3E8B41" />
+      </linearGradient>
+      <!-- Gradiente para o corpo do pássaro -->
+      <radialGradient id="birdGradient" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFEB3B" />
+        <stop offset="100%" stop-color="#FBC02D" />
+      </radialGradient>
+    </defs>
+
+    <!-- Grupo de todos os pipes -->
+    <g id="pipes"></g>
+
+    <!-- Pássaro -->
+    <g id="bird">
+      <!-- Corpo -->
+      <circle cx="50" cy="150" r="12" fill="url(#birdGradient)" stroke="#FBC02D" stroke-width="2" />
+      <!-- Olho -->
+      <circle cx="56" cy="146" r="3" fill="#000" />
+      <!-- Asinha -->
+      <path d="M44,150 q-4,6 4,4" fill="none" stroke="#FBC02D" stroke-width="2" />
+    </g>
+
+    <!-- Texto da pontuação -->
+    <text id="scoreText" x="10" y="30" fill="#FFF" font-size="24px" font-family="sans-serif">0</text>
+
+    <!-- Overlay de Game Over -->
+    <rect id="overlay" x="0" y="0" width="320" height="480" fill="rgba(0,0,0,0.5)" visibility="hidden" />
+    <text id="gameOverText" x="160" y="220" text-anchor="middle" fill="#FFF" font-size="32px" font-family="sans-serif"
+      visibility="hidden">Game Over</text>
+    <text id="restartText" x="160" y="260" text-anchor="middle" fill="#FFF" font-size="20px" font-family="sans-serif"
+      visibility="hidden">Pressione Espaço para reiniciar</text>
+  </svg>
+
+  <script>
+    const svgNS = "http://www.w3.org/2000/svg";
+    const game = document.getElementById("game");
+    const pipesGroup = document.getElementById("pipes");
+    const birdEl = document.getElementById("bird");
+    const scoreText = document.getElementById("scoreText");
+    const overlay = document.getElementById("overlay");
+    const gameOverText = document.getElementById("gameOverText");
+    const restartText = document.getElementById("restartText");
+
+    const WIDTH = 320, HEIGHT = 480;
+    const GRAVITY = 0.6, JUMP = -8;
+    const PIPE_W = 52, GAP = 120, PIPE_DIST = 200, PIPE_SPEED = 2;
+
+    let bird = { x: 50, y: 150, vy: 0, r: 12 };
+    let pipes = [];
+    let score = 0;
+    let gameOver = false;
+    let rafId;
+
+    function createPipe(x, holeY) {
+      // holeY: posição do topo do gap
+      const g = document.createElementNS(svgNS, "g");
+      // cano de cima
+      const top = document.createElementNS(svgNS, "rect");
+      top.setAttribute("width", PIPE_W);
+      top.setAttribute("height", holeY);
+      top.setAttribute("fill", "url(#pipeGradient)");
+      // cano de baixo
+      const bot = document.createElementNS(svgNS, "rect");
+      bot.setAttribute("x", 0);
+      bot.setAttribute("y", holeY + GAP);
+      bot.setAttribute("width", PIPE_W);
+      bot.setAttribute("height", HEIGHT - holeY - GAP);
+      bot.setAttribute("fill", "url(#pipeGradient)");
+      // aplicar transform de X no grupo
+      g.appendChild(top);
+      g.appendChild(bot);
+      g.setAttribute("transform", `translate(${x},0)`);
+      pipesGroup.appendChild(g);
+      return { g, x, holeY };
+    }
+
+    function resetGame() {
+      // limpar pipes antigos
+      pipesGroup.innerHTML = "";
+      pipes = [];
+      score = 0;
+      scoreText.textContent = score;
+      bird.y = 150;
+      bird.vy = 0;
+      gameOver = false;
+      overlay.setAttribute("visibility", "hidden");
+      gameOverText.setAttribute("visibility", "hidden");
+      restartText.setAttribute("visibility", "hidden");
+      // gerar 3 pipes iniciais
+      for (let i = 0; i < 3; i++) {
+        const x = WIDTH + i * PIPE_DIST;
+        const holeY = 50 + Math.random() * (HEIGHT - GAP - 100);
+        pipes.push(createPipe(x, holeY));
+      }
+      if (!rafId) animate();
+    }
+
+    function update() {
+      // física do pássaro
+      bird.vy += GRAVITY;
+      bird.y += bird.vy;
+      // aplicar no SVG
+      birdEl.setAttribute("transform", `translate(0, ${bird.y - 150})`);
+
+      // mover pipes
+      pipes.forEach(p => {
+        p.x -= PIPE_SPEED;
+        p.g.setAttribute("transform", `translate(${p.x},0)`);
+      });
+
+      // remover e adicionar
+      if (pipes.length && pipes[0].x < -PIPE_W) {
+        pipesGroup.removeChild(pipes[0].g);
+        pipes.shift();
+        score++;
+        scoreText.textContent = score;
+        const lastX = pipes[pipes.length - 1].x;
+        const holeY = 50 + Math.random() * (HEIGHT - GAP - 100);
+        pipes.push(createPipe(lastX + PIPE_DIST, holeY));
+      }
+
+      // colisões
+      const bx1 = bird.x - bird.r;
+      const bx2 = bird.x + bird.r;
+      const by1 = bird.y - bird.r;
+      const by2 = bird.y + bird.r;
+
+      for (let p of pipes) {
+        const px1 = p.x, px2 = p.x + PIPE_W;
+        const gapTop = p.holeY;
+        const gapBot = p.holeY + GAP;
+        if (
+          // topo
+          bx2 > px1 && bx1 < px2 && by1 < gapTop ||
+          // fundo
+          bx2 > px1 && bx1 < px2 && by2 > gapBot
+        ) {
+          gameOver = true; break;
+        }
+      }
+      // chão e teto
+      if (by2 > HEIGHT || by1 < 0) gameOver = true;
+    }
+
+    function animate() {
+      if (!gameOver) {
+        update();
+        rafId = requestAnimationFrame(animate);
+      } else {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        overlay.setAttribute("visibility", "visible");
+        gameOverText.setAttribute("visibility", "visible");
+        restartText.setAttribute("visibility", "visible");
+      }
+    }
+
+    // controle de teclado
+    document.addEventListener("keydown", e => {
+      if (e.code === "Space") {
+        if (gameOver) {
+          resetGame();
+        } else {
+          bird.vy = JUMP;
+        }
+      }
+    });
+
+    // iniciar
+    resetGame();
+
+  </script>
