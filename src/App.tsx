@@ -6,11 +6,12 @@ import { useGameLoop } from './hooks/useGameLoop';
 import { useGame } from './hooks/useGame';
 import { GameOver } from './components/GameOver';
 import { Score } from './components/Score';
+import { DifficultyIndicator } from './components/DifficultyIndicator';
 import { GAME_CONFIG } from './constants';
 
 export function App() {
   const jump = useKeyboard();
-  const { bird, pipes, score, gameOver, resetGame, updateGame } = useGame();
+  const { bird, pipes, score, gameOver, resetGame, updateGame, currentDifficulty } = useGame();
 
   // Inicializa o jogo ao montar
   React.useEffect(() => resetGame(), [resetGame]);
@@ -37,6 +38,7 @@ export function App() {
       <Pipes pipes={pipes} />
       <BirdType bird={bird} />
       <Score score={score} />
+      <DifficultyIndicator currentDifficulty={currentDifficulty} />
       {gameOver && <GameOver onRestart={resetGame} />}
     </svg>
   );

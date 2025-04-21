@@ -40,6 +40,13 @@ export interface GameConfig {
   PIPE_SPEED: number;
 }
 
+// Interface para os níveis de dificuldade
+export interface DifficultyLevel {
+  score: number;   // Pontuação necessária para atingir este nível
+  speed: number;   // Velocidade dos canos neste nível
+  gap: number;     // Tamanho do espaço entre os canos
+}
+
 export interface GameElements {
   game: SVGSVGElement;
   pipesGroup: SVGGElement;
