@@ -1,5 +1,5 @@
 import { Position, Pipe } from './types'
-import { GAME_HEIGHT, PIPE_GAP } from './constants'
+import { GAME_HEIGHT, GAP } from './constants'
 
 export const checkCollision = (birdPosition: Position, pipes: Pipe[]): boolean => {
   return pipes.some(pipe => {
@@ -23,7 +23,7 @@ export const checkCollision = (birdPosition: Position, pipes: Pipe[]): boolean =
 }
 
 export const generatePipe = (): Pipe => {
-  const height = Math.floor(Math.random() * (GAME_HEIGHT - PIPE_GAP - 100)) + 50
+  const height = Math.floor(Math.random() * (GAME_HEIGHT - GAP - 100)) + 50
   const x = 400;
   const holeY = height;
   return {
